@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 from common.mysql_operate import db
-from common.redis_operate import redis_db
 from common.md5_operate import get_md5
+import config.setting as conf
+import common.json_operate as json_operate
 import re, time
 
 app = Flask(__name__)
@@ -86,7 +87,7 @@ def user_login():
             timeStamp = int(time.time()) # 获取当前时间戳
             # token = "{}{}".format(username, timeStamp)
             token = get_md5(username, str(timeStamp)) # MD5加密后得到token
-            redis_db.handle_redis_token(username, token) # 把token放到redis中存储
+            conf.user_token[username] = token
             login_info = { # 构造一个字段，将 id/username/token/login_time 返回
                 "id": res2[0]["id"],
                 "username": username,
@@ -113,9 +114,9 @@ def user_update(id): # id为准备修改的用户ID
         elif not (len(new_telephone) == 11 and re.match("^1[3,5,7,8]\d{9}$", new_telephone)):
             return jsonify({"code": 4008, "msg": "手机号格式不正确！！！"})
         else:
-            redis_token = redis_db.handle_redis_token(admin_user) # 从redis中取token
-            if redis_token:
-                if redis_token == token: # 如果从redis中取到的token不为空，且等于请求body中的token
+            user_token = conf.user_token[admin_user]
+            if user_token:
+                if user_token == token: # 如果从redis中取到的token不为空，且等于请求body中的token
                     sql1 = "SELECT role FROM user WHERE username = '{}'".format(admin_user)
                     res1 = db.select_db(sql1)
                     print("根据用户名 【 {} 】 查询到用户类型 == >> {}".format(admin_user, res1))
@@ -157,9 +158,9 @@ def user_delete(username):
     admin_user = request.json.get("admin_user", "").strip()  # 当前登录的管理员用户
     token = request.json.get("token", "").strip()  # token口令
     if admin_user and token:
-        redis_token = redis_db.handle_redis_token(admin_user)  # 从redis中取token
-        if redis_token:
-            if redis_token == token:  # 如果从redis中取到的token不为空，且等于请求body中的token
+        user_token = conf.user_token[admin_user]
+        if user_token:
+            if user_token == token:  # 如果从redis中取到的token不为空，且等于请求body中的token
                 sql1 = "SELECT role FROM user WHERE username = '{}'".format(admin_user)
                 res1 = db.select_db(sql1)
                 print("根据用户名 【 {} 】 查询到用户类型 == >> {}".format(admin_user, res1))

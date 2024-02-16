@@ -16,4 +16,7 @@ REDIS_PASSWD = "123456"
 EXPIRE_TIME = 600
 
 # MD5加密盐值
-MD5_SALT = "test2020#%*"
+MD5_SALT = "test2024#%*"
+
+user_token = {}
+token_path = "./res/token/token.json"
